@@ -89,7 +89,7 @@ class FFmpegFrameExtractor
             StartInfo = new ProcessStartInfo
             {
                 FileName = _ffmpegPath,
-                Arguments = $"-i \"{videoPath}\" -vf fps={fps} -f image2pipe -vcodec bmp -",
+                Arguments = $"-i \"{videoPath}\" -vf fps={fps.ToString(CultureInfo.InvariantCulture)} -f image2pipe -vcodec bmp -",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
