@@ -361,6 +361,7 @@ MigrationBackup/
 
 ffmpeg.exe
 flatc.exe
+.idea
 
 # Fody - auto-generated XML schema
 <<<<<<< HEAD
