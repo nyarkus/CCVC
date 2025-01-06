@@ -53,12 +53,7 @@ public class CVideo
         {
             using (GZipStream gzip = new(File.OpenRead(filename), CompressionMode.Decompress))
             {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = gzip.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    stream.Write(buffer, 0, bytesRead);
-                }
+                gzip.CopyTo(stream);
             }
 
             bytes = stream.ToArray();
