@@ -63,9 +63,9 @@ namespace CCVC {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Byte[].
         /// </summary>
-        internal static byte[] FFmpeg {
+        internal static byte[] FfmpegArchive {
             get {
-                object obj = ResourceManager.GetObject("FFmpeg", resourceCulture);
+                object obj = ResourceManager.GetObject("FfmpegArchive", resourceCulture);
                 return ((byte[])(obj));
             }
         }

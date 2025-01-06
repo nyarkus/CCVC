@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 
 namespace CCVC.Encoder;
@@ -18,7 +19,10 @@ class FFmpegManager
         if (File.Exists(_ffmpegPath))
             return;
 
-        File.WriteAllBytes(_ffmpegPath, Resources.FFmpeg);
+        using GZipStream gzip = new(new MemoryStream(Resources.FfmpegArchive), CompressionMode.Decompress);
+        using FileStream file = File.Create(_ffmpegPath);
+        gzip.CopyTo(file);
+        file.Close();
     }
     public MemoryStream ExtractSoundToMemory(string videoPath)
     {

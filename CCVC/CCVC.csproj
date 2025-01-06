@@ -17,12 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Update="ffmpeg.exe">
-			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-
-	<ItemGroup>
+		<Folder Include="Properties\" />
 		<Folder Include="Schemes\" />
 	</ItemGroup>
 
