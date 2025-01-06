@@ -13,8 +13,17 @@ class FFmpegManager
         _ffmpegPath = ffmpegPath;
     }
 
+    private void CheckFFmpeg()
+    {
+        if (File.Exists(_ffmpegPath))
+            return;
+
+        File.WriteAllBytes(_ffmpegPath, Resources.FFmpeg);
+    }
     public MemoryStream ExtractSoundToMemory(string videoPath)
     {
+        CheckFFmpeg();
+
         var memory = new MemoryStream();
         var process = new Process
         {
@@ -54,6 +63,8 @@ class FFmpegManager
     }
     public double GetFPS(string videoPath)
     {
+        CheckFFmpeg();
+
         var memory = new MemoryStream();
         var process = new Process
         {
@@ -84,6 +95,8 @@ class FFmpegManager
 
     public void ExtractFramesToMemory(string videoPath, double fps, Action<MemoryStream> onFrameReceived)
     {
+        CheckFFmpeg();
+
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
