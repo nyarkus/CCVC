@@ -2,9 +2,9 @@
 using SkiaSharp;
 using System.Text;
 
-namespace CCVC;
+namespace CCVC.Encoder;
 
-public class ASCIIArtGenerator
+public class FrameConverter
 {
     const string asciiChars = " .:-=+*#%@";
     public static int Width { get; } = 256;
@@ -22,7 +22,7 @@ public class ASCIIArtGenerator
         using var buffer = GraphicsDevice.GetDefault().AllocateReadWriteTexture2D<int>(Width, Height);
         lock(locker)
         {
-            GraphicsDevice.GetDefault().For<AsciiShader>(texture.Width, texture.Height, new AsciiShader(texture, buffer));
+            GraphicsDevice.GetDefault().For<EncodeShader>(texture.Width, texture.Height, new EncodeShader(texture, buffer));
         }
         
         var result = buffer.ToArray();
@@ -47,7 +47,7 @@ public class ASCIIArtGenerator
 
 [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
 [GeneratedComputeShaderDescriptor]
-public readonly partial struct AsciiShader(IReadWriteNormalizedTexture2D<float4> texture, ReadWriteTexture2D<int> buffer) : IComputeShader
+public readonly partial struct EncodeShader(IReadWriteNormalizedTexture2D<float4> texture, ReadWriteTexture2D<int> buffer) : IComputeShader
 {
     public void Execute()
     {

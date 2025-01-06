@@ -2,13 +2,13 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace CCVC;
+namespace CCVC.Encoder;
 
-class FFmpegFrameExtractor
+class FFmpegManager
 {
     private readonly string _ffmpegPath;
 
-    public FFmpegFrameExtractor(string ffmpegPath = "ffmpeg.exe")
+    public FFmpegManager(string ffmpegPath = "ffmpeg.exe")
     {
         _ffmpegPath = ffmpegPath;
     }
@@ -106,7 +106,6 @@ class FFmpegFrameExtractor
                 string errorMessage;
                 while ((errorMessage = errorStream.ReadLine()) != null)
                 {
-                    // Обработка ошибок (например, логирование)
                     Console.WriteLine(errorMessage);
                 }
             }
@@ -118,11 +117,9 @@ class FFmpegFrameExtractor
             {
                 try
                 {
-                    // Считываем один кадр BMP
                     var frameStream = ReadBmpFrameToMemory(outputStream);
                     if (frameStream == null) break;
 
-                    // Вызываем callback для кадра
                     onFrameReceived(frameStream);
                 }
                 catch (EndOfStreamException)
@@ -136,18 +133,15 @@ class FFmpegFrameExtractor
     }
     private MemoryStream ReadBmpFrameToMemory(Stream stream)
     {
-        var buffer = new byte[54]; // Заголовок BMP имеет фиксированный размер 54 байта
+        var buffer = new byte[54];
         if (stream.Read(buffer, 0, 54) != 54)
             return null;
 
-        // Проверяем сигнатуру BMP (первые 2 байта: 42 4D, "BM")
         if (buffer[0] != 0x42 || buffer[1] != 0x4D)
             return null;
 
-        // Извлекаем размер BMP-файла (байты 2–5 в заголовке)
         int fileSize = BitConverter.ToInt32(buffer, 2);
 
-        // Читаем остальные данные BMP
         var ms = new MemoryStream();
         ms.Write(buffer, 0, 54);
 

@@ -1,4 +1,7 @@
-﻿namespace CCVC;
+﻿using CCVC.Encoder;
+using CCVC.Players;
+
+namespace CCVC;
 
 public class Program
 {
@@ -40,7 +43,7 @@ public class Program
         output = Path.ChangeExtension(output, ".ccv");
 
         Console.WriteLine("Converting...");
-        var video = CVideo.ConvertFromVideo(source);
+        var video = Converter.ConvertFromVideo(source);
 
         Console.WriteLine("Saving...");
         video.Save(output);
@@ -55,7 +58,7 @@ public class Program
         Console.Beep();
         Console.WriteLine("Ready to play! Press enter to start playing video");
         Console.ReadLine();
-        video.PlayInConsole().Wait();
+        ConsolePlayer.Play(video);
         GC.Collect();
     }
 }
