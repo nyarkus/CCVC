@@ -359,5 +359,14 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
+ffmpeg.exe
+flatc.exe
+
 # Fody - auto-generated XML schema
+<<<<<<< HEAD
 FodyWeavers.xsd
+/CCVC/flatc.exe
+/CCVC/ffmpeg.exe
+=======
+FodyWeavers.xsd
+>>>>>>> parent of fc5293c (Init)
