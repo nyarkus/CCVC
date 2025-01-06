@@ -30,19 +30,22 @@ public struct ConsoleVideo : IFlatbufferObject
   public byte[] GetSoundArray() { return __p.__vector_as_array<byte>(6); }
   public string Frames(int j) { int o = __p.__offset(8); return o != 0 ? __p.__string(__p.__vector(o) + j * 4) : null; }
   public int FramesLength { get { int o = __p.__offset(8); return o != 0 ? __p.__vector_len(o) : 0; } }
+  public int Version { get { int o = __p.__offset(10); return o != 0 ? __p.bb.GetInt(o + __p.bb_pos) : (int)0; } }
 
   public static Offset<Schemes.CV.ConsoleVideo> CreateConsoleVideo(FlatBufferBuilder builder,
       double fps = 0.0,
       VectorOffset soundOffset = default(VectorOffset),
-      VectorOffset framesOffset = default(VectorOffset)) {
-    builder.StartTable(3);
+      VectorOffset framesOffset = default(VectorOffset),
+      int version = 0) {
+    builder.StartTable(4);
     ConsoleVideo.AddFps(builder, fps);
+    ConsoleVideo.AddVersion(builder, version);
     ConsoleVideo.AddFrames(builder, framesOffset);
     ConsoleVideo.AddSound(builder, soundOffset);
     return ConsoleVideo.EndConsoleVideo(builder);
   }
 
-  public static void StartConsoleVideo(FlatBufferBuilder builder) { builder.StartTable(3); }
+  public static void StartConsoleVideo(FlatBufferBuilder builder) { builder.StartTable(4); }
   public static void AddFps(FlatBufferBuilder builder, double fps) { builder.AddDouble(0, fps, 0.0); }
   public static void AddSound(FlatBufferBuilder builder, VectorOffset soundOffset) { builder.AddOffset(1, soundOffset.Value, 0); }
   public static VectorOffset CreateSoundVector(FlatBufferBuilder builder, byte[] data) { builder.StartVector(1, data.Length, 1); for (int i = data.Length - 1; i >= 0; i--) builder.AddByte(data[i]); return builder.EndVector(); }
@@ -56,6 +59,7 @@ public struct ConsoleVideo : IFlatbufferObject
   public static VectorOffset CreateFramesVectorBlock(FlatBufferBuilder builder, ArraySegment<StringOffset> data) { builder.StartVector(4, data.Count, 4); builder.Add(data); return builder.EndVector(); }
   public static VectorOffset CreateFramesVectorBlock(FlatBufferBuilder builder, IntPtr dataPtr, int sizeInBytes) { builder.StartVector(1, sizeInBytes, 1); builder.Add<StringOffset>(dataPtr, sizeInBytes); return builder.EndVector(); }
   public static void StartFramesVector(FlatBufferBuilder builder, int numElems) { builder.StartVector(4, numElems, 4); }
+  public static void AddVersion(FlatBufferBuilder builder, int version) { builder.AddInt(3, version, 0); }
   public static Offset<Schemes.CV.ConsoleVideo> EndConsoleVideo(FlatBufferBuilder builder) {
     int o = builder.EndTable();
     return new Offset<Schemes.CV.ConsoleVideo>(o);
@@ -71,6 +75,7 @@ static public class ConsoleVideoVerify
       && verifier.VerifyField(tablePos, 4 /*Fps*/, 8 /*double*/, 8, false)
       && verifier.VerifyVectorOfData(tablePos, 6 /*Sound*/, 1 /*byte*/, false)
       && verifier.VerifyVectorOfStrings(tablePos, 8 /*Frames*/, false)
+      && verifier.VerifyField(tablePos, 10 /*Version*/, 4 /*int*/, 4, false)
       && verifier.VerifyTableEnd(tablePos);
   }
 }

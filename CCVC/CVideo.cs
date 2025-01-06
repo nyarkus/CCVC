@@ -8,13 +8,17 @@ namespace CCVC;
 
 internal class CVideo
 {
+    public const int CurrentVersion = 1;
+
     private string[] _frames = new string[0];
     private double _fps;
     private byte[] _sound;
+    private int _version;
 
     public IReadOnlyList<string> Frames { get { return _frames.ToList(); } }
     public double FPS { get { return _fps; } }
     public MemoryStream Sound { get { return new MemoryStream(_sound); } }
+    public int Version { get { return _version; } }
 
     public async Task PlayInConsole()
     {
@@ -79,7 +83,7 @@ internal class CVideo
             strings.Add(builder.CreateString(frame));
         var frames = Schemes.CV.ConsoleVideo.CreateFramesVector(builder, strings.ToArray());
 
-        var video = Schemes.CV.ConsoleVideo.CreateConsoleVideo(builder, FPS, sound, frames);
+        var video = Schemes.CV.ConsoleVideo.CreateConsoleVideo(builder, FPS, sound, frames, CurrentVersion);
 
         builder.Finish(video.Value);
         var buffer = builder.SizedByteArray();
@@ -176,6 +180,13 @@ internal class CVideo
 
 
         var video = Schemes.CV.ConsoleVideo.GetRootAsConsoleVideo(new(bytes));
+
+        var version = video.Version;
+        if(version > CurrentVersion)
+        {
+            throw new Exception("The file version is higher than the supported one. Loading is not possible");
+        }
+
         List<string> frames = new();
 
         for (int i = 0; i < video.FramesLength; i++)
@@ -187,10 +198,10 @@ internal class CVideo
             sound.Add(video.Sound(i));
 
         GC.Collect();
-        return new CVideo(frames.ToArray(), video.Fps, sound.ToArray());
+        return new CVideo(frames.ToArray(), video.Fps, sound.ToArray(), version);
     }
 
-    public CVideo(string[] frames, double fps, byte[] sound)
+    public CVideo(string[] frames, double fps, byte[] sound, int version = CurrentVersion)
     {
         _frames = frames;
         _fps = fps;
