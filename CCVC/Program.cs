@@ -33,17 +33,36 @@ public class Program
             }
         }
     }
+    
+    private static int ReadInt(string text, int max = int.MaxValue)
+    {
+        while (true)
+        {
+            Console.WriteLine(text);
+            if(int.TryParse(Console.ReadLine(), out var value))
+            {
+                if (value > max)
+                    continue;
+                return value;
+            }
+        }
+    }
+
     public static void Convert()
     {
         Console.WriteLine("Enter a source video:");
         string source = Console.ReadLine().Trim('"');
+
+        byte colors = (byte)ReadInt($"How many colors do you want to use? (max is {byte.MaxValue})");
+        int width = ReadInt("Specify the width of the video (in number of characters)");
+        int height = ReadInt("Specify the heigh of the video (in number of characters)");
 
         Console.WriteLine("Where to save the .ccv file?");
         string output = Console.ReadLine().Trim('"');
         output = Path.ChangeExtension(output, ".ccv");
 
         Console.WriteLine("Converting...");
-        var video = Converter.ConvertFromVideo(source);
+        var video = Converter.ConvertFromVideo(source, width, height, colors);
 
         Console.WriteLine("Saving...");
         video.Save(output);

@@ -1,7 +1,6 @@
 ﻿using Google.FlatBuffers;
-using NAudio.Wave;
-using System.Collections.Concurrent;
-using System.Diagnostics;
+using Schemes.CV;
+using System;
 using System.IO.Compression;
 
 namespace CCVC;
@@ -10,27 +9,69 @@ public class CVideo
 {
     public const int CurrentVersion = 1;
 
-    private string[] _frames = new string[0];
+    private byte[][]? _frames = new byte[0][];
     private double _fps;
     private byte[] _sound;
     private int _version;
+    private int _width = 256;
+    private int _height = 128;
+    private byte _colors;
 
-    public IReadOnlyList<string> Frames { get { return _frames.ToList(); } }
+    private Schemes.CV.ConsoleVideo? _loadedVideo;
+
+    //public IReadOnlyList<byte> Frames { get { return _frames.ToList(); } }
     public double FPS { get { return _fps; } }
     public MemoryStream Sound { get { return new MemoryStream(_sound); } }
     public int Version { get { return _version; } }
+    public int Width { get { return _width; } }
+    public int Height { get { return _height; } }
+    public byte ColorCount { get { return _colors; } }
 
+    public byte[] GetFrame(int index)
+    {
+        if (_loadedVideo is null)
+            return _frames![index];
+        else
+        {
+            var frame = _loadedVideo.Value.Frames(index + 1)!.Value;
+            List<byte> bytes = new();
+            for (var i = 0; i < frame.ContentLength; i++)
+                bytes.Add(frame.Content(i));
+            return bytes.ToArray();
+        }
+    }
+    
+    public int GetFramesCount()
+    {
+        if (_loadedVideo is null)
+            return _frames!.Length;
+        else
+            return _loadedVideo.Value.FramesLength;
+    }
+
+    public int GetLength()
+    {
+        if (_loadedVideo is null)
+            return _frames!.Length;
+        else
+            return _loadedVideo.Value.FramesLength;
+    }
     public void Save(Stream stream)
     {
         FlatBufferBuilder builder = new(1024);
         var sound = Schemes.CV.ConsoleVideo.CreateSoundVector(builder, _sound);
 
-        List<StringOffset> strings = new();
-        foreach (var frame in _frames)
-            strings.Add(builder.CreateString(frame));
-        var frames = Schemes.CV.ConsoleVideo.CreateFramesVector(builder, strings.ToArray());
+        
+        List<Offset<Frame>> frameOffsets = new();
+        for(int i = 0; i < GetFramesCount(); i++)
+        {
+            var contentVector = Schemes.CV.Frame.CreateContentVector(builder, GetFrame(i));
+            frameOffsets.Add(Schemes.CV.Frame.CreateFrame(builder, contentVector));
+        }
+        
+        var frames = Schemes.CV.ConsoleVideo.CreateFramesVector(builder, frameOffsets.ToArray());
 
-        var video = Schemes.CV.ConsoleVideo.CreateConsoleVideo(builder, FPS, sound, frames, CurrentVersion);
+        var video = Schemes.CV.ConsoleVideo.CreateConsoleVideo(builder, FPS, sound, frames, CurrentVersion, Width, Height, _colors);
 
         builder.Finish(video.Value);
         var buffer = builder.SizedByteArray();
@@ -52,9 +93,8 @@ public class CVideo
         using (MemoryStream stream = new())
         {
             using (GZipStream gzip = new(File.OpenRead(filename), CompressionMode.Decompress))
-            {
                 gzip.CopyTo(stream);
-            }
+            
 
             bytes = stream.ToArray();
         }
@@ -68,24 +108,28 @@ public class CVideo
             throw new Exception("The file version is higher than the supported one. Loading is not possible");
         }
 
-        List<string> frames = new();
-
-        for (int i = 0; i < video.FramesLength; i++)
-            frames.Add(video.Frames(i));
-
         List<byte> sound = new();
         
         for(int i = 0; i < video.SoundLength; i++)
             sound.Add(video.Sound(i));
 
-        GC.Collect();
-        return new CVideo(frames.ToArray(), video.Fps, sound.ToArray(), version);
+        return new CVideo(video, video.Fps, sound.ToArray(), video.Width, video.Height, video.Colors, version);
     }
 
-    public CVideo(string[] frames, double fps, byte[] sound, int version = CurrentVersion)
+    public CVideo(byte[][] frames, double fps, byte[] sound, int width, int height, byte colorCount, int version = CurrentVersion)
     {
         _frames = frames;
         _fps = fps;
         _sound = sound;
+        _loadedVideo = null;
+        _colors = colorCount;
+    }
+    public CVideo(Schemes.CV.ConsoleVideo video, double fps, byte[] sound, int width, int height, byte colorCount, int version = CurrentVersion)
+    {
+        _loadedVideo = video;
+        _fps = fps;
+        _sound = sound;
+        _frames = null;
+        _colors = colorCount;
     }
 }

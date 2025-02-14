@@ -10,22 +10,22 @@ namespace CCVC.Encoder
 {
     public class Converter
     {
-        public static CVideo ConvertFromVideo(string filename)
+        public static CVideo ConvertFromVideo(string filename, int width, int height, byte countOfColors = 10)
         {
-            List<string> list = new();
+            List<byte[]> list = new();
             var ffmpeg = new FFmpegManager();
 
             double fps = ffmpeg.GetFPS(filename);
 
             {
-                var framesDict = new ConcurrentDictionary<int, string>();
+                var framesDict = new ConcurrentDictionary<int, byte[]>();
 
                 int frameIndex = 0;
                 ffmpeg.ExtractFramesToMemory(filename, fps, frameStream =>
                 {
                     int currentIndex = Interlocked.Increment(ref frameIndex) - 1;
 
-                    var frame = FrameConverter.Convert(frameStream);
+                    var frame = FrameConverter.Convert(frameStream, countOfColors, width, height);
                     framesDict[currentIndex] = frame;
 
                 });
@@ -58,7 +58,7 @@ namespace CCVC.Encoder
                 audio = outputWavStream;
             }
 
-            var video = new CVideo(list.ToArray(), fps, audio.ToArray());
+            var video = new CVideo(list.ToArray(), fps, audio.ToArray(), 256, 128, countOfColors);
 
             GC.Collect();
             return video;

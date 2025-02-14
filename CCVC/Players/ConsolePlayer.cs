@@ -1,62 +1,73 @@
-﻿using NAudio.Wave;
+﻿using CCVC.Decoder;
+using NAudio.Wave;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace CCVC.Players
 {
     public class ConsolePlayer
     {
-        public static async Task Play(CVideo video)
+        public static void Play(CVideo video)
         {
             Console.Clear();
+            Console.CursorVisible = false;
 
             ConsoleHelper.FontInfo info = new();
             ConsoleHelper.GetCurrentConsoleFontEx(1, true, ref info);
-
             ConsoleHelper.SetCurrentFont("Consolas", 5);
-            Console.WindowWidth = Console.WindowWidth * 3;
-            Console.WindowHeight = Console.WindowHeight * 3;
+            Console.WindowWidth = Console.LargestWindowWidth;
+            Console.WindowHeight = Console.LargestWindowHeight;
 
-            var frames = video.Frames;
+            var decoder = new FrameDecoder(
+                video.Width,
+                video.Height,
+                video.FPS,
+                new CVideoFrameReader(video)
+            );
 
-            using var vorbisStream = new WaveFileReader(video.Sound);
+            using var waveStream = new WaveFileReader(video.Sound);
             using var waveOut = new WaveOutEvent();
-            waveOut.Init(vorbisStream);
+            waveOut.Init(waveStream);
+
+            var swGlobal = Stopwatch.StartNew();
             waveOut.Play();
 
-            var stopwatch = Stopwatch.StartNew();
-            var targetFrameTime = TimeSpan.FromSeconds(1.0 / video.FPS);
+            double accumulatedTime = 0;
+            double frameTime = 1.0 / video.FPS;
+            int targetFrame = 0;
 
-            for (int i = 0; i < frames.Count; i++)
+            while (targetFrame < video.GetFramesCount())
             {
-                var elapsedTime = stopwatch.Elapsed;
-                var expectedTime = TimeSpan.FromSeconds(i / video.FPS);
+                double audioTime = waveOut.GetPosition() / (double)waveStream.WaveFormat.AverageBytesPerSecond;
+                targetFrame = (int)(audioTime * video.FPS);
 
-                if (elapsedTime < expectedTime)
+                if (targetFrame > decoder.LastDecodedFrame + 2)
                 {
-                    var delay = expectedTime - elapsedTime;
-                    await Task.Delay(delay);
+                    decoder.Seek(targetFrame);
+                }
+
+                string frame = decoder.ReadFrame(targetFrame);
+                if (!string.IsNullOrEmpty(frame))
+                {
+                    Console.SetCursorPosition(0, 0);
+                    Console.Write(frame);
                 }
                 else
                 {
-                    while (elapsedTime > expectedTime && i < frames.Count - 1)
-                    {
-                        i++;
-                        expectedTime = TimeSpan.FromSeconds(i / video.FPS);
-                    }
+                    Debug.WriteLine($"Frame {targetFrame} not found in buffer");
                 }
 
-                Console.Write(frames[i]);
-                Console.CursorLeft = 0;
-                Console.CursorTop = 0;
+                accumulatedTime += frameTime;
+                double sleepTime = accumulatedTime - swGlobal.Elapsed.TotalSeconds;
+                if (sleepTime > 0)
+                {
+                    Thread.Sleep((int)(sleepTime * 1000));
+                }
             }
+
             ConsoleHelper.SetCurrentFont("Consolas");
-            Console.WindowWidth = Console.WindowWidth / 3;
-            Console.WindowHeight = Console.WindowHeight / 3;
+            Console.CursorVisible = true;
         }
     }
 }

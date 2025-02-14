@@ -6,57 +6,53 @@ namespace CCVC.Encoder;
 
 public class FrameConverter
 {
-    const string asciiChars = " .:-=+*#%@";
-    public static int Width { get; } = 256;
-    public static int Height { get; } = 128;
-
     private static object locker = new();
-    public static string Convert(Stream image)
+    public static byte[] Convert(Stream image, byte countOfColors, int width, int height)
     {
-        var bitmap = SKBitmap.Decode(image).Resize(new SKSizeI(Width, Height), new SKSamplingOptions());
+        var bitmap = SKBitmap.Decode(image).Resize(new SKSizeI(width, height), new SKSamplingOptions());
         image = new MemoryStream();
         bitmap.Encode(image, SKEncodedImageFormat.Png, 100);
         bitmap.Dispose();
 
         using var texture = GraphicsDevice.GetDefault().LoadReadWriteTexture2D<Bgra32, float4>(image);
-        using var buffer = GraphicsDevice.GetDefault().AllocateReadWriteTexture2D<int>(Width, Height);
+        using var buffer = GraphicsDevice.GetDefault().AllocateReadWriteTexture2D<int>(width, height);
+        using var properties = GraphicsDevice.GetDefault().AllocateReadWriteBuffer<int>([countOfColors]);
         lock(locker)
         {
-            GraphicsDevice.GetDefault().For<EncodeShader>(texture.Width, texture.Height, new EncodeShader(texture, buffer));
+            GraphicsDevice.GetDefault().For<EncodeShader>(texture.Width, texture.Height, new EncodeShader(texture, buffer, properties));
         }
         
         var result = buffer.ToArray();
-        
 
-        var sb = new StringBuilder();
 
-        for (int y = 0; y < Height; y++)
+        List<byte> frame = new();
+
+        for (int y = 0; y < height; y++)
         {
-            for (int x = 0; x < Width; x++)
+            for (int x = 0; x < width; x++)
             {
-                var index = result[y, x];
-                sb.Append(asciiChars[index]);
+                var value = result[y, x];
+                frame.Add((byte)value);
             }
-            sb.AppendLine();
         }
 
-        return sb.ToString();
+        return frame.ToArray();
     }
 }
 
 
 [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
 [GeneratedComputeShaderDescriptor]
-public readonly partial struct EncodeShader(IReadWriteNormalizedTexture2D<float4> texture, ReadWriteTexture2D<int> buffer) : IComputeShader
+public readonly partial struct EncodeShader(IReadWriteNormalizedTexture2D<float4> texture, ReadWriteTexture2D<int> buffer, ReadWriteBuffer<int> properties) : IComputeShader
 {
     public void Execute()
     {
         float3 rgb = texture[ThreadIds.XY].RGB;
         float grayValue = rgb[0] * 0.3f + rgb[1] * 0.59f + rgb[2] * 0.11f;
 
-        int index = (int)(grayValue * 10f);
+        int index = (int)(grayValue * properties[0]);
 
-        index = Hlsl.Clamp(index, 0, 9);
+        index = Hlsl.Clamp(index, 0, properties[0]);
 
         buffer[ThreadIds.XY] = index;
     }
