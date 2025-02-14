@@ -58,7 +58,7 @@ namespace CCVC.Encoder
                 audio = outputWavStream;
             }
 
-            var video = new CVideo(list.ToArray(), fps, audio.ToArray(), 256, 128, countOfColors);
+            var video = new CVideo(list.ToArray(), fps, audio.ToArray(), width, height, countOfColors);
 
             GC.Collect();
             return video;

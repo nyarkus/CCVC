@@ -13,8 +13,8 @@ public class CVideo
     private double _fps;
     private byte[] _sound;
     private int _version;
-    private int _width = 256;
-    private int _height = 128;
+    private int _width;
+    private int _height;
     private byte _colors;
 
     private Schemes.CV.ConsoleVideo? _loadedVideo;
@@ -71,7 +71,7 @@ public class CVideo
         
         var frames = Schemes.CV.ConsoleVideo.CreateFramesVector(builder, frameOffsets.ToArray());
 
-        var video = Schemes.CV.ConsoleVideo.CreateConsoleVideo(builder, FPS, sound, frames, CurrentVersion, Width, Height, _colors);
+        var video = Schemes.CV.ConsoleVideo.CreateConsoleVideo(builder, FPS, sound, frames, CurrentVersion, _width, _height, _colors);
 
         builder.Finish(video.Value);
         var buffer = builder.SizedByteArray();
@@ -123,6 +123,8 @@ public class CVideo
         _sound = sound;
         _loadedVideo = null;
         _colors = colorCount;
+        _width = width;
+        _height = height;
     }
     public CVideo(Schemes.CV.ConsoleVideo video, double fps, byte[] sound, int width, int height, byte colorCount, int version = CurrentVersion)
     {
@@ -131,5 +133,7 @@ public class CVideo
         _sound = sound;
         _frames = null;
         _colors = colorCount;
+        _width = width;
+        _height = height;
     }
 }

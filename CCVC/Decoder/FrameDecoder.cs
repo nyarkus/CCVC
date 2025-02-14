@@ -86,7 +86,7 @@ namespace CCVC.Decoder
                 {
                     try
                     {
-                        string content = FrameConverter.Convert(preloaded[i], _chars, _stream.ColorCount);
+                        string content = FrameConverter.Convert(preloaded[i], _chars, _stream.ColorCount, _stream.Width, _stream.Height);
                         int index = _stream.Position - preloaded.Count + i;
                         tempBuffer.TryAdd(index, new Frame(content, index));
                     }
@@ -152,7 +152,7 @@ namespace CCVC.Decoder
                 }
             }
 
-            return new string('\n', FrameConverter.Height);
+            return new string('\n', _stream.Height);
         }
 
         public FrameDecoder(int width, int height, double fps, CVideoFrameReader stream, string chars = " .:-=+*#%@")
@@ -162,8 +162,6 @@ namespace CCVC.Decoder
             _fps = fps;
             _stream = stream;
             _frameInterval = 1000.0 / fps;
-            FrameConverter.Width = width;
-            FrameConverter.Height = height;
             _chars = chars;
         }
     }

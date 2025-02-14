@@ -6,6 +6,8 @@ public class CVideoFrameReader
     private int _lastFrame;
     public double FPS { get { lock (_video) { return _video.FPS; } } }
     public byte ColorCount { get { return _video.ColorCount; } }
+    public int Width { get { return _video.Width; } }
+    public int Height {  get { return _video.Height; } }
 
     private int _cachedLength = -1;
     public int Length

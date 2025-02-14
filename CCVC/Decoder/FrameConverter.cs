@@ -5,26 +5,23 @@ namespace CCVC.Decoder;
 
 public class FrameConverter
 {
-    public static int Width { get; set; } = 256;
-    public static int Height { get; set; } = 128;
-
     private static object locker = new();
-    public static string Convert(byte[] input, string chars, byte colors)
+    public static string Convert(byte[] input, string chars, byte colors, int width, int height)
     {
-        int[,] EncodedFrame = new int[Height, Width];
+        int[,] EncodedFrame = new int[height, width];
 
-        for (int y = 0; y < Height; y++)
+        for (int y = 0; y < height; y++)
         {
-            for (int x = 0; x < Width; x++)
+            for (int x = 0; x < width; x++)
             {
-                int index = y * Width + x;
+                int index = y * width + x;
                 EncodedFrame[y, x] = input[index];
             }
         }
 
 
         using var texture = GraphicsDevice.GetDefault().AllocateReadOnlyTexture2D<int>(EncodedFrame);
-        using var buffer = GraphicsDevice.GetDefault().AllocateReadWriteTexture2D<int>(Width, Height);
+        using var buffer = GraphicsDevice.GetDefault().AllocateReadWriteTexture2D<int>(width, height);
         using var properties = GraphicsDevice.GetDefault().AllocateReadOnlyBuffer<int>([chars.Length, colors]);
         lock(locker)
         {
@@ -36,9 +33,9 @@ public class FrameConverter
 
         StringBuilder DecodedFrame = new();
 
-        for (int y = 0; y < Height; y++)
+        for (int y = 0; y < height; y++)
         {
-            for (int x = 0; x < Width; x++)
+            for (int x = 0; x < width; x++)
             {
                 var index = result[y, x];
                 DecodedFrame.Append(chars[index]);
