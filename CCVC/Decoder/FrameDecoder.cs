@@ -11,16 +11,11 @@ namespace CCVC.Decoder
     {
         private string _chars;
 
-        private int _width;
-        private int _height;
-        private double _fps;
         private CVideoFrameReader _stream;
 
         private ConcurrentDictionary<int, Frame> _bufferedFrames = new();
         private int _lastFrame = 0;
-        private int _minBufferThreshold = 30;
         public int FramesInBuffer { get; set; } = 120;
-        private bool _calculated = false;
 
         private SemaphoreSlim _bufferSemaphore = new(1, 1);
         private Stopwatch _frameTimer = new();
@@ -33,7 +28,7 @@ namespace CCVC.Decoder
                 _bufferSemaphore.Wait();
                 try
                 {
-                    return _bufferedFrames.IsEmpty ? -1 : _bufferedFrames.Keys.Max();
+                    return _bufferedFrames.IsEmpty ? -1 : _bufferedFrames.Last().Key;
                 }
                 finally
                 {
@@ -52,7 +47,6 @@ namespace CCVC.Decoder
 
                 _bufferSemaphore.Release();
                 RecalculateBuffer();
-                _bufferSemaphore.Wait();
             }
             finally
             {
@@ -60,14 +54,34 @@ namespace CCVC.Decoder
             }
         }
 
+        private bool _recalculateCalled = false;
+        private bool recalculateCalled
+        {
+            get
+            {
+                lock (this)
+                {
+                    return _recalculateCalled;
+                }
+            }
+            set
+            {
+                lock (this)
+                {
+                    _recalculateCalled = value;
+                }
+            }
+        }
+
         public void RecalculateBuffer()
         {
-            if (_stream.Position >= _stream.Length) return;
+            if (_stream.Position >= _stream.Length || recalculateCalled) return;
 
+            recalculateCalled = true;
             _bufferSemaphore.Wait();
             try
             {
-                int neededFrames = Math.Max(FramesInBuffer - _bufferedFrames.Count, 10);
+                int neededFrames = FramesInBuffer - _bufferedFrames.Count;
                 if (neededFrames <= 0) return;
 
                 List<byte[]> preloaded = new(neededFrames);
@@ -101,6 +115,7 @@ namespace CCVC.Decoder
             finally
             {
                 _bufferSemaphore.Release();
+                recalculateCalled = false;
             }
         }
 
@@ -126,6 +141,7 @@ namespace CCVC.Decoder
             }
 
             _bufferSemaphore.Wait();
+            Console.Title = $"Buffer size: {FramesInBuffer}; Frames buffered: {_bufferedFrames.Count}; Last frame: {_lastFrame}";
             try
             {
                 if (_bufferedFrames.TryGetValue(_lastFrame, out Frame frameData))
@@ -157,9 +173,6 @@ namespace CCVC.Decoder
 
         public FrameDecoder(int width, int height, double fps, CVideoFrameReader stream, string chars = " .:-=+*#%@")
         {
-            _width = width;
-            _height = height;
-            _fps = fps;
             _stream = stream;
             _frameInterval = 1000.0 / fps;
             _chars = chars;

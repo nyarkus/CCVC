@@ -17,7 +17,7 @@ namespace CCVC.Players
             ConsoleHelper.GetCurrentConsoleFontEx(1, true, ref info);
             ConsoleHelper.SetCurrentFont("Consolas", 2);
             Console.WindowWidth = video.Width + 1;
-            Console.WindowHeight = video.Height + 1;
+            Console.WindowHeight = video.Height;
 
             var decoder = new FrameDecoder(
                 video.Width,
