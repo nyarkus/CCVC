@@ -5,7 +5,6 @@ namespace CCVC.Decoder;
 
 public class FrameConverter
 {
-    private static object locker = new();
     public static string Convert(byte[] input, string chars, byte colors, int width, int height)
     {
         int[,] EncodedFrame = new int[height, width];
@@ -23,10 +22,10 @@ public class FrameConverter
         using var texture = GraphicsDevice.GetDefault().AllocateReadOnlyTexture2D<int>(EncodedFrame);
         using var buffer = GraphicsDevice.GetDefault().AllocateReadWriteTexture2D<int>(width, height);
         using var properties = GraphicsDevice.GetDefault().AllocateReadOnlyBuffer<int>([chars.Length, colors]);
-        lock(locker)
-        {
-            GraphicsDevice.GetDefault().For<DecodeShader>(texture.Width, texture.Height, new DecodeShader(texture, buffer, properties));
-        }
+        //lock(locker)
+        //{
+        GraphicsDevice.GetDefault().For<DecodeShader>(texture.Width, texture.Height, new DecodeShader(texture, buffer, properties));
+        //}
         
         var result = buffer.ToArray();
 

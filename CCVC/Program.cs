@@ -54,8 +54,8 @@ public class Program
         string source = Console.ReadLine().Trim('"');
 
         byte colors = (byte)ReadInt($"How many colors do you want to use? (max is {byte.MaxValue})");
-        int width = ReadInt("Specify the width of the video (in number of characters)");
-        int height = ReadInt("Specify the heigh of the video (in number of characters)");
+        int width = ReadInt($"Specify the width of the video (in number of characters. Your max is {ConsolePlayer.GetMaxWidth()})");
+        int height = ReadInt($"Specify the heigh of the video (in number of characters. Your max is {ConsolePlayer.GetMaxHeight()})");
 
         Console.WriteLine("Where to save the .ccv file?");
         string output = Console.ReadLine().Trim('"');

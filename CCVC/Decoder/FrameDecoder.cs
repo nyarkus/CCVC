@@ -14,10 +14,28 @@ namespace CCVC.Decoder
         private CVideoFrameReader _stream;
 
         private ConcurrentDictionary<int, Frame> _bufferedFrames = new();
+        private int _framesInBuffer
+        {
+            get
+            {
+                lock (this)
+                {
+                    return _fib;
+                }
+            }
+            set
+            {
+                lock (this)
+                {
+                    _fib = Math.Max(value, 0);
+                }
+            }
+        }
+        private int _fib = 0;
         private int _lastFrame = 0;
-        public int FramesInBuffer { get; set; } = 120;
+        public int BufferSize { get; set; } = 240;
 
-        private SemaphoreSlim _bufferSemaphore = new(1, 1);
+        private ReaderWriterLockSlim _bufferLock = new ReaderWriterLockSlim();
         private Stopwatch _frameTimer = new();
         private double _frameInterval;
 
@@ -25,98 +43,101 @@ namespace CCVC.Decoder
         {
             get
             {
-                _bufferSemaphore.Wait();
+                _bufferLock.EnterReadLock();
                 try
                 {
                     return _bufferedFrames.IsEmpty ? -1 : _bufferedFrames.Last().Key;
                 }
                 finally
                 {
-                    _bufferSemaphore.Release();
+                    _bufferLock.ExitReadLock();
                 }
             }
         }
 
         public void Seek(int targetFrame)
         {
-            _bufferSemaphore.Wait();
+            _bufferLock.EnterWriteLock();
             try
             {
-                _bufferedFrames.Clear();
-                _stream.Position = Math.Clamp(targetFrame, 0, _stream.Length - 1);
+                _stream.Position = Math.Clamp(targetFrame, 0, _stream.Length - 1) + (int)_stream.FPS;
 
-                _bufferSemaphore.Release();
-                RecalculateBuffer();
+                var outdated = _bufferedFrames.Keys
+                    .Where(k => k < targetFrame - 10 || k > targetFrame + 10)
+                    .ToList();
+
+                foreach (var key in outdated)
+                {
+                    if (_bufferedFrames.TryRemove(key, out _))
+                    {
+                        _framesInBuffer--;
+                    }
+                }
             }
             finally
             {
-                _bufferSemaphore.Release();
-            }
-        }
-
-        private bool _recalculateCalled = false;
-        private bool recalculateCalled
-        {
-            get
-            {
-                lock (this)
-                {
-                    return _recalculateCalled;
-                }
-            }
-            set
-            {
-                lock (this)
-                {
-                    _recalculateCalled = value;
-                }
+                _bufferLock.ExitWriteLock();
             }
         }
 
         public void RecalculateBuffer()
         {
-            if (_stream.Position >= _stream.Length || recalculateCalled) return;
-
-            recalculateCalled = true;
-            _bufferSemaphore.Wait();
-            try
+            while (_stream.Position < _stream.Length)
             {
-                int neededFrames = FramesInBuffer - _bufferedFrames.Count;
-                if (neededFrames <= 0) return;
-
-                List<byte[]> preloaded = new(neededFrames);
-                lock (_stream)
+                Debug.WriteLine($"RecalculateBuffer executed on {DateTimeOffset.UtcNow}");
+                try
                 {
-                    for (int i = 0; i < neededFrames && _stream.Position < _stream.Length; i++)
+                    int neededFrames = BufferSize - _framesInBuffer;
+                    if (neededFrames <= 0) continue;
+
+                    List<byte[]> preloaded = new(neededFrames);
+                    lock (_stream)
                     {
-                        byte[] frameData = _stream.Read();
-                        if (frameData.Length == 0) break;
-                        preloaded.Add(frameData);
+                        for (int i = 0; i < neededFrames && _stream.Position < _stream.Length; i++)
+                        {
+                            byte[] frameData = _stream.Read();
+                            if (frameData.Length == 0) break;
+                            preloaded.Add(frameData);
+                        }
                     }
-                }
 
-                var tempBuffer = new ConcurrentDictionary<int, Frame>();
-                Parallel.For(0, preloaded.Count, i =>
-                {
+
+                    var tempBuffer = new ConcurrentDictionary<int, Frame>();
+                    var options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+                    Parallel.For(0, preloaded.Count, options, i =>
+                    {
+                        try
+                        {
+                            string content = FrameConverter.Convert(preloaded[i], _chars, _stream.ColorCount, _stream.Width, _stream.Height);
+                            int index = _stream.Position - preloaded.Count + i;
+                            tempBuffer.TryAdd(index, new Frame(content, index));
+                        }
+                        catch { }
+                    });
+
+                    _bufferLock.EnterWriteLock();
                     try
                     {
-                        string content = FrameConverter.Convert(preloaded[i], _chars, _stream.ColorCount, _stream.Width, _stream.Height);
-                        int index = _stream.Position - preloaded.Count + i;
-                        tempBuffer.TryAdd(index, new Frame(content, index));
+                        foreach (var pair in tempBuffer)
+                        {
+                            if (_bufferedFrames.TryAdd(pair.Key, pair.Value))
+                            {
+                                _framesInBuffer++;
+                            }
+                        }
                     }
-                    catch { }
-                });
-
-                foreach (var pair in tempBuffer)
+                    finally
+                    {
+                        _bufferLock.ExitWriteLock();
+                    }
+                }
+                finally
                 {
-                    _bufferedFrames.TryAdd(pair.Key, pair.Value);
+                    //_bufferSemaphore.Release();
+                    Debug.WriteLine($"RecalculateBuffer completed on {DateTimeOffset.UtcNow}");
                 }
             }
-            finally
-            {
-                _bufferSemaphore.Release();
-                recalculateCalled = false;
-            }
+            
         }
 
 
@@ -140,32 +161,21 @@ namespace CCVC.Decoder
                 _frameTimer.Restart();
             }
 
-            _bufferSemaphore.Wait();
-            Console.Title = $"Buffer size: {FramesInBuffer}; Frames buffered: {_bufferedFrames.Count}; Last frame: {_lastFrame}";
+            _bufferLock.EnterReadLock();
+
+            Console.Title = $"Buffer: {BufferSize};Buffered: {_framesInBuffer};Last frame: {_lastFrame};Stream pos: {_stream.Position}";
             try
             {
                 if (_bufferedFrames.TryGetValue(_lastFrame, out Frame frameData))
                 {
                     _bufferedFrames.TryRemove(_lastFrame, out _);
-                    return frameData.Content;
-                }
-
-                _bufferSemaphore.Release();
-                RecalculateBuffer();
-                _bufferSemaphore.Wait();
-
-                if (_bufferedFrames.TryGetValue(_lastFrame, out frameData))
-                {
-                    _bufferedFrames.TryRemove(_lastFrame, out _);
+                    _framesInBuffer--;
                     return frameData.Content;
                 }
             }
             finally
             {
-                if (_bufferSemaphore.CurrentCount == 0)
-                {
-                    _bufferSemaphore.Release();
-                }
+                _bufferLock.ExitReadLock();
             }
 
             return new string('\n', _stream.Height);
@@ -176,6 +186,8 @@ namespace CCVC.Decoder
             _stream = stream;
             _frameInterval = 1000.0 / fps;
             _chars = chars;
+
+            ThreadPool.SetMinThreads(Environment.ProcessorCount * 2, Environment.ProcessorCount * 2);
         }
     }
 

@@ -8,6 +8,23 @@ namespace CCVC.Players
 {
     public class ConsolePlayer
     {
+        public static int GetMaxWidth()
+        {
+            int result;
+            ConsoleHelper.SetCurrentFont("Consolas", 2);
+            result = Console.LargestWindowWidth;
+            ConsoleHelper.SetCurrentFont("Consolas", 16);
+            return result;
+        }
+        public static int GetMaxHeight()
+        {
+            int result;
+            ConsoleHelper.SetCurrentFont("Consolas", 2);
+            result = Console.LargestWindowHeight;
+            ConsoleHelper.SetCurrentFont("Consolas", 16);
+            return result;
+        }
+
         public static void Play(CVideo video)
         {
             Console.Clear();
@@ -16,8 +33,14 @@ namespace CCVC.Players
             ConsoleHelper.FontInfo info = new();
             ConsoleHelper.GetCurrentConsoleFontEx(1, true, ref info);
             ConsoleHelper.SetCurrentFont("Consolas", 2);
+
+            var oldWidth = Console.WindowWidth;
+            var oldHeight = Console.WindowHeight;
+
+            Console.SetWindowPosition(0, 0);
             Console.WindowWidth = video.Width + 1;
             Console.WindowHeight = video.Height;
+
 
             var decoder = new FrameDecoder(
                 video.Width,
@@ -25,6 +48,9 @@ namespace CCVC.Players
                 video.FPS,
                 new CVideoFrameReader(video)
             );
+            _ = Task.Run(decoder.RecalculateBuffer);
+            while (decoder.LastDecodedFrame < decoder.BufferSize)
+                Thread.Sleep(1);
 
             using var waveStream = new WaveFileReader(video.Sound);
             using var waveOut = new WaveOutEvent();
@@ -42,7 +68,7 @@ namespace CCVC.Players
                 double audioTime = waveOut.GetPosition() / (double)waveStream.WaveFormat.AverageBytesPerSecond;
                 targetFrame = (int)(audioTime * video.FPS);
 
-                if (targetFrame > decoder.LastDecodedFrame + 2)
+                if (targetFrame > decoder.LastDecodedFrame)
                 {
                     decoder.Seek(targetFrame);
                 }
@@ -66,8 +92,12 @@ namespace CCVC.Players
                 }
             }
 
-            ConsoleHelper.SetCurrentFont("Consolas");
+            decoder = null;
+
+            ConsoleHelper.SetCurrentFont("Consolas", 16);
             Console.CursorVisible = true;
+            Console.WindowWidth = oldWidth;
+            Console.WindowHeight = oldHeight;
         }
     }
 }
