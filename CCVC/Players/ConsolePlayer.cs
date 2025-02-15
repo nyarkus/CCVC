@@ -39,7 +39,7 @@ namespace CCVC.Players
 
             Console.SetWindowPosition(0, 0);
             Console.WindowWidth = video.Width + 1;
-            Console.WindowHeight = video.Height;
+            Console.WindowHeight = video.Height + 1;
 
 
             var decoder = new FrameDecoder(
@@ -94,10 +94,11 @@ namespace CCVC.Players
 
             decoder = null;
 
-            ConsoleHelper.SetCurrentFont("Consolas", 16);
-            Console.CursorVisible = true;
             Console.WindowWidth = oldWidth;
             Console.WindowHeight = oldHeight;
+
+            ConsoleHelper.SetCurrentFont("Consolas", 16);
+            Console.CursorVisible = true;
         }
     }
 }

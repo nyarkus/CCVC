@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<OutputType>Library</OutputType>
+		<OutputType>Exe</OutputType>
 		<TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -10,15 +10,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="ComputeSharp" Version="3.1.0" />
-		<PackageReference Include="Google.FlatBuffers" Version="24.12.23" />
-		<PackageReference Include="NAudio" Version="2.2.1" />
-		<PackageReference Include="SkiaSharp" Version="3.116.1" />
+	  <ProjectReference Include="..\CCVC\CCVC.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Properties\" />
-		<Folder Include="Schemes\" />
+	  <None Update="CCV.ico">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 </Project>

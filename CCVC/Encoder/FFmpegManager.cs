@@ -5,25 +5,16 @@ using System.Text.RegularExpressions;
 
 namespace CCVC.Encoder;
 
-class FFmpegManager
+public abstract class FFmpegManager
 {
-    private readonly string _ffmpegPath;
+    protected readonly string _ffmpegPath;
 
     public FFmpegManager(string ffmpegPath = "ffmpeg.exe")
     {
         _ffmpegPath = ffmpegPath;
     }
 
-    private void CheckFFmpeg()
-    {
-        if (File.Exists(_ffmpegPath))
-            return;
-
-        using GZipStream gzip = new(new MemoryStream(Resources.FfmpegArchive), CompressionMode.Decompress);
-        using FileStream file = File.Create(_ffmpegPath);
-        gzip.CopyTo(file);
-        file.Close();
-    }
+    public abstract void CheckFFmpeg();
     public MemoryStream ExtractSoundToMemory(string videoPath)
     {
         CheckFFmpeg();

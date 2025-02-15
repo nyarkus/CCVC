@@ -10,10 +10,9 @@ namespace CCVC.Encoder
 {
     public class Converter
     {
-        public static CVideo ConvertFromVideo(string filename, int width, int height, byte countOfColors = 10)
+        public static CVideo ConvertFromVideo(FFmpegManager ffmpeg, string filename, int width, int height, byte countOfColors = 10)
         {
             List<byte[]> list = new();
-            var ffmpeg = new FFmpegManager();
 
             double fps = ffmpeg.GetFPS(filename);
 
