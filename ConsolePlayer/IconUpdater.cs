@@ -1,8 +1,7 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace ConsolePlayer;
-
-using System.Runtime.InteropServices;
 
 public class IconUpdater
 {
