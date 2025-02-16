@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,76 +68,106 @@ namespace Installer
                 {
                     while (true)
                     {
-                        var result = await client.GetAsync(Prepare.PlayerURL);
-                        if (!result.IsSuccessStatusCode)
+                        try
                         {
-                            var dialog = MessageBox.Show($"API respond with code: \"{result.StatusCode}\"", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                            HttpResponseMessage result = await client.GetAsync(Prepare.PlayerURL, HttpCompletionOption.ResponseHeadersRead, cancellation);
+                            if (!result.IsSuccessStatusCode)
+                            {
+                                var dialog = MessageBox.Show($"API respond with code: \"{result.StatusCode}\"", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                                if (dialog == DialogResult.Cancel)
+                                {
+                                    Cancel();
+                                    return;
+                                }
+                                continue;
+                            }
+
+                            var stream = await result.Content.ReadAsStreamAsync();
+                            var downloaded = await Download(stream, Prepare.PlayerSize);
+                            totalProgress.Value++;
+
+                            if (cancellation.IsCancellationRequested)
+                                return;
+
+                            state.Text = "Installing Console Player...";
+                            Directory.CreateDirectory(playerDir);
+                            await Decompress(playerDir, downloaded);
+                            totalProgress.Value++;
+                            downloaded.Dispose();
+                            stream.Dispose();
+                            break;
+                        }
+                        catch(TimeoutException)
+                        {
+                            var dialog = MessageBox.Show("Failed to get the required data for the installation. Check the internet connection and try again", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
                             if (dialog == DialogResult.Cancel)
                             {
                                 Cancel();
                                 return;
                             }
-                            continue;
                         }
-
-                        var stream = await result.Content.ReadAsStreamAsync();
-                        var downloaded = await Download(stream);
-                        totalProgress.Value++;
-
-                        if (cancellation.IsCancellationRequested)
-                            return;
-
-                        state.Text = "Installing Console Player...";
-                        Directory.CreateDirectory(playerDir);
-                        await Decompress(playerDir, downloaded);
-                        totalProgress.Value++;
-                        downloaded.Dispose();
-                        stream.Dispose();
                     }
                 }
             }
             if(Options.InstallConverter)
             {
+                taskProgress.Value = 0;
                 state.Text = "Downloading Converter...";
                 using (var client = new HttpClient())
                 {
                     while (true)
                     {
-                        var result = await client.GetAsync(Prepare.ConverterURL);
-                        if (!result.IsSuccessStatusCode)
+                        try
                         {
-                            var dialog = MessageBox.Show($"API respond with code: \"{result.StatusCode}\"", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, Prepare.ConverterURL);
+                            HttpResponseMessage result = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+                            if (!result.IsSuccessStatusCode)
+                            {
+                                var dialog = MessageBox.Show($"API respond with code: \"{result.StatusCode}\"", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                                if (dialog == DialogResult.Cancel)
+                                {
+                                    Cancel();
+                                    return;
+                                }
+                                continue;
+                            }
+
+                            var stream = await result.Content.ReadAsStreamAsync();
+                            var downloaded = await Download(stream, Prepare.ConverterSize);
+                            totalProgress.Value++;
+
+                            if (cancellation.IsCancellationRequested)
+                                return;
+
+                            state.Text = "Installing Converter...";
+                            Directory.CreateDirectory(converterDir);
+                            await Decompress(converterDir, downloaded);
+                            totalProgress.Value++;
+                            downloaded.Dispose();
+                            stream.Dispose();
+                            break;
+                        }
+                        catch (TimeoutException)
+                        {
+                            var dialog = MessageBox.Show("Failed to get the required data for the installation. Check the internet connection and try again", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
                             if (dialog == DialogResult.Cancel)
                             {
                                 Cancel();
                                 return;
                             }
-                            continue;
                         }
-
-                        var stream = await result.Content.ReadAsStreamAsync();
-                        var downloaded = await Download(stream);
-                        totalProgress.Value++;
-
-                        if (cancellation.IsCancellationRequested)
-                            return;
-
-                        state.Text = "Installing Converter...";
-                        Directory.CreateDirectory(converterDir);
-                        await Decompress(converterDir, downloaded);
-                        totalProgress.Value++;
-                        downloaded.Dispose();
-                        stream.Dispose();
                     }
                 }
             }
             if(Options.AddFileAssociation)
             {
+                taskProgress.Value = 0;
                 if (cancellation.IsCancellationRequested)
                     return;
 
+                abort.Enabled = false;
                 state.Text = "Creating file association...";
-                AddToRegistry();
+                AddToRegistry(playerDir);
                 totalProgress.Value++;
             }
 
@@ -145,26 +176,28 @@ namespace Installer
         }
 
         #region Methods
-        private async Task<Stream> Download(Stream stream)
+        private async Task<Stream> Download(Stream stream, long size)
         {
             var memory = new MemoryStream();
 
-            long readed = 0;
+            int bytesRead = 0;
+            long totalBytesRead = 0;
             taskProgress.Value = 0;
-            taskProgress.Maximum = (int)(stream.Length / 1024);
+            taskProgress.Maximum = (int)(size / 1024);
 
-            while(stream.Position < stream.Length)
+            byte[] buffer = new byte[4096];
+            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
+                totalBytesRead += bytesRead;
                 if (cancellation.IsCancellationRequested)
                     return null;
+                memory.Write(buffer, 0, bytesRead);
 
-                byte[] buffer = new byte[1024];
-                readed += await stream.ReadAsync(buffer, 0, 1024);
-                memory.Write(buffer, 0, buffer.Length);
-
-                taskProgress.Value = (int)(readed / 1024);
+                if ((int)(totalBytesRead / 1024) < taskProgress.Maximum)
+                    taskProgress.Value = (int)(totalBytesRead / 1024);
             }
 
+            memory.Position = 0;
             return memory;
         }
 
@@ -198,15 +231,15 @@ namespace Installer
         }
 
         private const string progId = "CCVC";
-        private static void AddToRegistry()
+        private static void AddToRegistry(string dir)
         {
             using (RegistryKey key = Registry.CurrentUser.CreateSubKey($"Software\\Classes\\.ccv"))
             {
                 key.SetValue("", progId);
             }
 
-            var applicationPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ConsolePlayer.exe");
-            var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CCV.ico");
+            var applicationPath = Path.Combine(dir, "ConsolePlayer.exe");
+            var iconPath = Path.Combine(dir, "CCV.ico");
 
             using (RegistryKey key = Registry.CurrentUser.CreateSubKey($"Software\\Classes\\{progId}"))
             {
