@@ -101,9 +101,16 @@ namespace Installer
                     Environment.Exit(0);
                 }
 
-                new License().Show();
+                var license = new License();
+                license.FormClosed += OnClosed;
+                license.Show();
                 Hide();
             }
+        }
+
+        private void OnClosed(object sender, FormClosedEventArgs e)
+        {
+            Close();
         }
     }
 }

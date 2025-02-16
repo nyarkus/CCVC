@@ -13,7 +13,7 @@ namespace Installer
         private void License_Load(object sender, EventArgs e)
         {
             licenseBox.Text = Prepare.LicenseText;
-            licenseBox.Enabled = false;
+            licenseBox.ReadOnly = true;
             next.Enabled = false;
         }
 
@@ -22,14 +22,20 @@ namespace Installer
             var options = new Options();
             options.Size = Size;
             options.StartPosition = StartPosition;
-
+            options.FormClosed += OnClosed;
             options.Show();
             Hide();
+        }
+
+        private void OnClosed(object sender, FormClosedEventArgs e)
+        {
+            Close();
         }
 
         private void checkBox_CheckedChanged(object sender, EventArgs e)
         {
             next.Enabled = checkBox.Checked;
         }
+
     }
 }

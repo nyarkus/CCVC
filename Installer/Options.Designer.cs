@@ -51,15 +51,14 @@
             // 
             // directory
             // 
-            this.directory.Enabled = false;
             this.directory.Location = new System.Drawing.Point(16, 32);
             this.directory.Name = "directory";
-            this.directory.Size = new System.Drawing.Size(298, 20);
+            this.directory.Size = new System.Drawing.Size(388, 20);
             this.directory.TabIndex = 1;
             // 
             // selectDirectory
             // 
-            this.selectDirectory.Location = new System.Drawing.Point(320, 32);
+            this.selectDirectory.Location = new System.Drawing.Point(410, 31);
             this.selectDirectory.Name = "selectDirectory";
             this.selectDirectory.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.selectDirectory.Size = new System.Drawing.Size(26, 21);

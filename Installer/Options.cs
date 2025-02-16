@@ -49,7 +49,8 @@ namespace Installer
 
         private void Options_Load(object sender, EventArgs e)
         {
-            directory.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "CCVC");
+            directory.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "CCVC");
+            directory.ReadOnly = true;
             consolePlayer.Checked = true;
             fileAssoc.Checked = true;
 
@@ -61,10 +62,7 @@ namespace Installer
         private void consolePlayer_CheckedChanged(object sender, EventArgs e)
         {
             if (!consolePlayer.Checked && !converter.Checked)
-            {
                 next.Enabled = false;
-                return;
-            }
             else
                 next.Enabled = true;
 
@@ -80,7 +78,7 @@ namespace Installer
             if (converter.Checked)
                 required += Prepare.ConverterSize;
 
-            spaceReq.Text = $"Space required: {required / 1024 / 1024}MB";
+            spaceReq.Text = $"Space required: ~{required / 1024 / 1024}MB";
 
             var drive = new DriveInfo(directory.Text[0].ToString());
             if (drive.AvailableFreeSpace < required)
@@ -107,8 +105,15 @@ namespace Installer
             var installation = new Installation();
             installation.Size = Size;
             installation.StartPosition = StartPosition;
+            installation.FormClosed += OnClosed;
+
             installation.Show();
             Hide();
+        }
+
+        private void OnClosed(object sender, FormClosedEventArgs e)
+        {
+            Close();
         }
     }
 }
