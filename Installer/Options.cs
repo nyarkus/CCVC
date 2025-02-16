@@ -44,6 +44,8 @@ namespace Installer
                 }
 
                 directory.Text = path;
+                notified = false;
+                consolePlayer_CheckedChanged(null, null);
             }
         }
 
@@ -59,6 +61,7 @@ namespace Installer
             consolePlayer_CheckedChanged(null, null);
         }
 
+        private bool notified = false;
         private void consolePlayer_CheckedChanged(object sender, EventArgs e)
         {
             if (!consolePlayer.Checked && !converter.Checked)
@@ -83,10 +86,14 @@ namespace Installer
             var drive = new DriveInfo(directory.Text[0].ToString());
             if (drive.AvailableFreeSpace < required)
             {
-                MessageBox.Show($"There is not enough free space on the {directory.Text[0]} drive for installation", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if(!notified)
+                    MessageBox.Show($"There is not enough free space on the \"{directory.Text[0]}\" drive for installation", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 next.Enabled = false;
+                notified = true;
                 return;
             }
+            else
+                notified = false;
         }
 
         private void converter_CheckedChanged(object sender, EventArgs e)
