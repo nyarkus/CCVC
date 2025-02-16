@@ -71,13 +71,13 @@ namespace Installer
                         foreach (var asset in assets)
                         {
                             var name = asset["name"].ToString();
-                            if (name == "player.gzip")
+                            if (name == "consoleplayer.zip")
                             {
                                 PlayerURL = asset["browser_download_url"].ToString();
                                 PlayerSize = asset["size"].Value<long>();
                                 progressBar.Value++;
                             }
-                            else if (name == "converter.gzip")
+                            else if (name == "converter.zip")
                             {
                                 ConverterURL = asset["browser_download_url"].ToString();
                                 ConverterSize = asset["size"].Value<long>();
