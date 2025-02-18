@@ -49,7 +49,7 @@ namespace CCVC.Players
                 new CVideoFrameReader(video)
             );
             _ = Task.Run(decoder.RecalculateBuffer);
-            while (decoder.LastDecodedFrame < decoder.BufferSize)
+            while (!decoder.BufferIsFull)
                 Thread.Sleep(1);
 
             using var waveStream = new WaveFileReader(video.Sound);

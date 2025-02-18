@@ -43,15 +43,15 @@ namespace CCVC.Decoder
         {
             get
             {
-                _bufferLock.EnterReadLock();
-                try
-                {
+                //_bufferLock.EnterReadLock();
+                //try
+                //{
                     return _bufferedFrames.IsEmpty ? -1 : _bufferedFrames.Last().Key;
-                }
-                finally
-                {
-                    _bufferLock.ExitReadLock();
-                }
+                //}
+                //finally
+                //{
+                //    _bufferLock.ExitReadLock();
+                //}
             }
         }
 
@@ -77,6 +77,20 @@ namespace CCVC.Decoder
             finally
             {
                 _bufferLock.ExitWriteLock();
+            }
+        }
+
+        public bool BufferIsFull
+        {
+            get
+            {
+                lock (this)
+                {
+                    if (_stream.Length < BufferSize)
+                        return LastDecodedFrame + 2 >= _stream.Length;
+                    else
+                        return LastDecodedFrame + 2 >= BufferSize;
+                }
             }
         }
 

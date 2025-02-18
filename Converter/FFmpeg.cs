@@ -16,10 +16,8 @@ namespace Converter
             if (File.Exists(_ffmpegPath))
                 return;
 
-            using GZipStream gzip = new(new MemoryStream(Resources.FfmpegArchive), CompressionMode.Decompress);
-            using FileStream file = File.Create(_ffmpegPath);
-            gzip.CopyTo(file);
-            file.Close();
+            Console.WriteLine("FFMpeg not found.");
+            Environment.Exit(-1);
         }
     }
 }

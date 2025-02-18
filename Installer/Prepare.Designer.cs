@@ -29,42 +29,45 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Prepare));
-            this.label1 = new System.Windows.Forms.Label();
-            this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.SuspendLayout();
+            label1 = new Label();
+            progressBar = new ProgressBar();
+            SuspendLayout();
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label1.Location = new System.Drawing.Point(0, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(129, 25);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "Preparing ...";
+            label1.AutoSize = true;
+            label1.Dock = DockStyle.Top;
+            label1.Font = new Font("Microsoft Sans Serif", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 204);
+            label1.Location = new Point(0, 0);
+            label1.Margin = new Padding(4, 0, 4, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(129, 25);
+            label1.TabIndex = 0;
+            label1.Text = "Preparing ...";
             // 
             // progressBar
             // 
-            this.progressBar.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.progressBar.Location = new System.Drawing.Point(0, 31);
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(125, 23);
-            this.progressBar.TabIndex = 1;
+            progressBar.Dock = DockStyle.Bottom;
+            progressBar.Location = new Point(0, 35);
+            progressBar.Margin = new Padding(4, 3, 4, 3);
+            progressBar.Name = "progressBar";
+            progressBar.Size = new Size(146, 27);
+            progressBar.TabIndex = 1;
             // 
             // Prepare
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(125, 54);
-            this.Controls.Add(this.progressBar);
-            this.Controls.Add(this.label1);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Name = "Prepare";
-            this.Text = "CCVC Installer";
-            this.Load += new System.EventHandler(this.Prepare_Load);
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(146, 62);
+            Controls.Add(progressBar);
+            Controls.Add(label1);
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(4, 3, 4, 3);
+            Name = "Prepare";
+            Text = "CCVC Installer";
+            Load += Prepare_Load;
+            ResumeLayout(false);
+            PerformLayout();
 
         }
 

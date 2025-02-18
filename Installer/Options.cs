@@ -57,7 +57,7 @@ namespace Installer
             fileAssoc.Checked = true;
 
             consolePlayer.Text += $" ~{Prepare.PlayerSize / 1024 / 1024}MB";
-            converter.Text += $" ~{Prepare.ConverterSize / 1024 / 1024}MB";
+            converter.Text += $" ~{(Prepare.ConverterSize + Prepare.FFMpegSize / 3) / 1024 / 1024}MB";
             consolePlayer_CheckedChanged(null, null);
         }
 
@@ -79,7 +79,7 @@ namespace Installer
                 fileAssoc.Enabled = false;
 
             if (converter.Checked)
-                required += Prepare.ConverterSize;
+                required += Prepare.ConverterSize + Prepare.FFMpegSize;
 
             spaceReq.Text = $"Space required: ~{required / 1024 / 1024}MB";
 

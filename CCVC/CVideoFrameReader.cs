@@ -3,7 +3,7 @@
 public class CVideoFrameReader
 {
     private CVideo _video;
-    private int _lastFrame;
+    private int _lastFrame = 0;
     public double FPS { get { lock (_video) { return _video.FPS; } } }
     public byte ColorCount { get { return _video.ColorCount; } }
     public int Width { get { return _video.Width; } }
@@ -27,7 +27,7 @@ public class CVideoFrameReader
     public int Position { get { return _lastFrame; } set { _lastFrame = value; } }
     public byte[] Read()
     {
-        if (_lastFrame >= Length || _lastFrame < 0)
+        if (_lastFrame + 1 >= Length || _lastFrame < 0)
             return Array.Empty<byte>();
 
         try

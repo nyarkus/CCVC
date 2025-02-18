@@ -23,7 +23,10 @@ namespace Installer
         public static string PlayerURL;
         public static long PlayerSize;
 
-        private const int steps = 3;
+        public static string FFMpegURL;
+        public static long FFMpegSize;
+
+        private const int steps = 4;
         public Prepare()
         {
             InitializeComponent();
@@ -81,6 +84,31 @@ namespace Installer
                             {
                                 ConverterURL = asset["browser_download_url"].ToString();
                                 ConverterSize = asset["size"].Value<long>();
+                                progressBar.Value++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception($"{response.StatusCode}");
+                    }
+
+                    // FFMpeg
+                    response = await client.GetAsync("https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string jsonResponse = await response.Content.ReadAsStringAsync();
+
+                        var json = Newtonsoft.Json.Linq.JObject.Parse(jsonResponse);
+                        var assets = (JArray)json["assets"];
+
+                        foreach (var asset in assets)
+                        {
+                            var name = asset["name"].ToString();
+                            if (name == "ffmpeg-master-latest-win64-lgpl.zip")
+                            {
+                                FFMpegURL = asset["browser_download_url"].ToString();
+                                FFMpegSize = asset["size"].Value<long>();
                                 progressBar.Value++;
                             }
                         }

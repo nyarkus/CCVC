@@ -53,7 +53,7 @@ namespace Installer
             if (Options.InstallPlayer)
                 steps+= 2;
             if (Options.InstallConverter)
-                steps+= 2;
+                steps+= 4;
             if (Options.AddFileAssociation)
                 steps++;
 
@@ -145,6 +145,37 @@ namespace Installer
                             totalProgress.Value++;
                             downloaded.Dispose();
                             stream.Dispose();
+
+                            //FFmpeg
+
+                            taskProgress.Value = 0;
+                            state.Text = "Downloading FFmpeg...";
+                            result = await client.GetAsync(Prepare.FFMpegURL, HttpCompletionOption.ResponseHeadersRead, cancellation);
+                            if (!result.IsSuccessStatusCode)
+                            {
+                                var dialog = MessageBox.Show($"API respond with code: \"{result.StatusCode}\"", "Error", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                                if (dialog == DialogResult.Cancel)
+                                {
+                                    Cancel();
+                                    return;
+                                }
+                                continue;
+                            }
+
+                            stream = await result.Content.ReadAsStreamAsync();
+                            downloaded = await Download(stream, Prepare.FFMpegSize);
+                            totalProgress.Value++;
+
+                            if (cancellation.IsCancellationRequested)
+                                return;
+
+                            state.Text = "Installing FFmpeg...";
+
+                            await Decompress(converterDir, downloaded, ["ffmpeg.exe"]);
+                            totalProgress.Value++;
+                            downloaded.Dispose();
+                            stream.Dispose();
+
                             break;
                         }
                         catch (TimeoutException)
@@ -201,7 +232,7 @@ namespace Installer
             return memory;
         }
 
-        private async Task Decompress(string path, Stream input)
+        private async Task Decompress(string path, Stream input, string[]? specifyedFiles = null)
         {
             var archive = new ICSharpCode.SharpZipLib.Zip.ZipFile(input);
 
@@ -212,8 +243,11 @@ namespace Installer
             {
                 var entry = (ZipEntry)obj;
 
+                if (specifyedFiles != null && !specifyedFiles.Contains(Path.GetFileName(entry.Name)))
+                    continue;
+
                 using (var zipStream = archive.GetInputStream(entry))
-                using (var fileStream = File.Create(Path.Combine(path, entry.Name)))
+                using (var fileStream = File.Create(Path.Combine(path, Path.GetFileName(entry.Name))))
                 {
                     if (cancellation.IsCancellationRequested)
                         return;
